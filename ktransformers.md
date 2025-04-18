@@ -1,10 +1,12 @@
 # Running DeepSeek-V3-0324 (685 B parameters) with 512 GB RAM on a single 16 GB GPU
 
+You can watch the video here! [Running DeepSeek-V3-0324 with 512 GB RAM on a single 16 GB GPU](https://www.youtube.com/watch?v=bM9tAYXK8dE)
+
 Here's my guide in how I set up `ktransformers` (quick transformers) to perform inference on **DeepSeek-V3-0324** with a 20c/40t CPU, 512 GB DDR5 RAM and just a **single** Nvidia A4000 16 GB GPU. 
 
 I think there needs to be a proper guide to use `ktransformers` with large MoE models. A lot of resources (especially YouTube) will show how to run these very large models on other inference engines like Ollama, or llama.cpp. There are some interesting build guides too, like running DeepSeek on an Epyc CPU with just lots of RAM. 
 
-But one video caught my attention and that's Jesse's (createthis) video on his setup where he has a 2x EPYC CPU setup with 768 GB RAM and just a single 24 GB (RTX 3090) GPU. After seeing him using `ktransformers` and the inferencing speed he achieved with it, I decided I had to do the same with my system.
+But one video caught my attention and that's [Jesse's (createthis) video](https://www.youtube.com/watch?v=fI6uGPcxDbM) on his setup where he has a 2x EPYC CPU setup with 768 GB RAM and just a single 24 GB (RTX 3090) GPU. After seeing him using `ktransformers` and the inferencing speed he achieved with it, I decided I had to do the same with my system.
 
 My system isn't as powerful, but it gets close to the performance that Jesse showed in his video from the eye test.
 
@@ -157,7 +159,7 @@ def load(self, inference_context):
 
 ## Prepare Your Models
 
-Create a `DeepSeek-V3-0324-Config` folder that contains the configuration files of the model. This is just basically the HuggingFace repo without the `safetensors` file. Here's a script to use `wget` to download them. I modified this from createthis larry document:
+Create a `DeepSeek-V3-0324-Config` folder that contains the configuration files of the model. This is just basically the HuggingFace repo without the `safetensors` file. Here's a script to use `wget` to download them. I modified this from [createthis larry document](https://github.com/createthis/larry):
 
 ```
 mkdir $HOME/DeepSeek-V3-0324-Config
