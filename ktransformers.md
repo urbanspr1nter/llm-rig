@@ -22,7 +22,7 @@ But notice the GPU that I have. It's just an older Ampere NVIDIA GPU with just 1
 
 # ktransformers
 
-This is a game changer. I would say that I can't live without it now. But it isn't easy to set up. You can follow the official guide here, but it was a bit tough to work out all the gotchas. 
+This is a game changer. I would say that I can't live without it now. But it isn't easy to set up. You can follow the [official guide here](https://github.com/kvcache-ai/ktransformers/blob/main/doc/en/install.md), but it was a bit tough to work out all the gotchas. 
 
 Your life will be much easier if you have CUDA properly installed. That means:
 
