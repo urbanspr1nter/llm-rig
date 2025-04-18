@@ -1,16 +1,35 @@
-# Setting up ktransformers to run DeepSeek-V3-0324 FAST
+# Running DeepSeek-V3-0324 (685 B parameters) with 512 GB RAM on a single 16 GB GPU
 
-Here's my guide in how I set up ktransformers to make DeepSeek-V3-0324 run fast on CPU inference! 
+Here's my guide in how I set up `ktransformers` (quick transformers) to perform inference on **DeepSeek-V3-0324** with a 20c/40t CPU, 512 GB DDR5 RAM and just a **single** Nvidia A4000 16 GB GPU. 
 
+I think there needs to be a proper guide to use `ktransformers` with large MoE models. A lot of resources (especially YouTube) will show how to run these very large models on other inference engines like Ollama, or llama.cpp. There are some interesting build guides too, like running DeepSeek on an Epyc CPU with just lots of RAM. 
 
+But one video caught my attention and that's Jesse's (createthis) video on his setup where he has a 2x EPYC CPU setup with 768 GB RAM and just a single 24 GB (RTX 3090) GPU. After seeing him using `ktransformers` and the inferencing speed he achieved with it, I decided I had to do the same with my system.
 
+My system isn't as powerful, but it gets close to the performance that Jesse showed in his video from the eye test.
 
+My desktop workstation setup:
+* Intel Xeon w5-3535x (20 cores/40 threads)
+* 512 GB DDR5 RDIMM at 5600 MT/s (64 GB x 8 Samsung DIMMs)
+* NVIDIA A4000 16 GB GPU (Ampere generation)
+* 4.0 TB Crucial SSD to store the model
+
+All in total, you can purchase this same system for less than an Mac Studio M3 Ultra, or a single RTX 6000 Ada GPU.
+
+But notice the GPU that I have. It's just an older Ampere NVIDIA GPU with just 16 GB of VRAM. This is what I consider to be amazing about all of this. Running big MoE models is usable with the ktransformers approach.
 
 # ktransformers
 
-This is a freaking game changer. I would say that I cannot live without it now. But it isn't easy to set up.
+This is a game changer. I would say that I can't live without it now. But it isn't easy to set up. You can follow the official guide here, but it was a bit tough to work out all the gotchas. 
 
-Here is what we need to do:
+Your life will be much easier if you have CUDA properly installed. That means:
+
+* Recent NVIDIA drivers (mine was 570)
+* Latest NVIDIA CUDA toolkit (12.8)
+
+You will also have a good time if you are on at least Ubuntu 22.04.5 or 24.04.2. My system is on Ubuntu 22.04.5. 
+
+Anyway, here is what we need to do:
 
 ## Install Miniconda and Create a Conda Environment
 
@@ -30,8 +49,6 @@ Then you can activate miniconda at any time by invoking:
 ```bash
 source ~/miniconda3/bin/activate
 ```
-
-
 
 ## Install Dependencies and Create Conda Environment
 
@@ -61,9 +78,7 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 pip3 install packaging ninja cpufeature numpy
 ```
 
-For this one we use CUDA 12.6
-
-
+Recommended that you really use the URL provided. You don't want to end up in a bad state with the wrong PyTorch dependencies.
 
 ## Install the Appropriate Flash Attention
 
@@ -79,8 +94,6 @@ Download the `whl` file and just execute with:
 pip3 install flash_attention_blah_blah.whl
 ```
 
-
-
 ## Clone and Build the Repo
 
 RECOMMENDED! Check out a tagged release! 
@@ -92,15 +105,13 @@ git checkout v0.0.0 # CHECK OUT A TAGGED RELEASE
 git submodule update --init --recursive
 ```
 
-Then build. Currently as of 0.2.4post1, something is broken, and the balanced_server backend doesn't work. You'll get something like `sched_ext` mising upon running.
+Then build. Currently as of 0.2.4post1, something is broken, and the `balanced_server` backend doesn't work. You'll get something like `sched_ext` mising upon running. Note, even if you provide `ktransformers` as the backend, you'll still get this error. If you run into it, don't worry, we'll address it in the next section: **sched_text Fix**.
 
 ```
 USE_BALANCE_SERVE=0 bash ./install.sh
 ```
 
 Takes a while to build.
-
-
 
 ## sched_ext Fix
 
@@ -144,11 +155,9 @@ def load(self, inference_context: sched_ext.InferenceContext):
 def load(self, inference_context):
 ```
 
-
-
 ## Prepare Your Models
 
-Create a `DeepSeek-V3-0324-Config` folder that contains the configuration files of the model. This is just basically the HuggingFace repo without the `safetensors` file. Here's a script to use `wget` to download them:
+Create a `DeepSeek-V3-0324-Config` folder that contains the configuration files of the model. This is just basically the HuggingFace repo without the `safetensors` file. Here's a script to use `wget` to download them. I modified this from createthis larry document:
 
 ```
 mkdir $HOME/DeepSeek-V3-0324-Config
@@ -169,11 +178,9 @@ cd -
 Then add the GGUF in a separate folder:
 
 ```
-mkdir $HOME/DeepSeek-V3-0324-Q5_K_M
-mv $HOME/DeepSeek-V3-0324-Q5_K_M.gguf $HOME/DeepSeek-V3-0324-Q5_K_M
+mkdir $HOME/DeepSeek-V3-0324-Q4_K_M
+mv $HOME/DeepSeek-V3-0324-Q4_K_M.gguf $HOME/DeepSeek-V3-0324-Q4_K_M
 ```
-
-
 
 ## Running!
 
@@ -189,17 +196,17 @@ python ktransformers/server/main.py \
 	--host 0.0.0.0 \
 	--port 9999 \
 	--model_path $HOME/DeepSeek-V3-0324-Config \
-	--model_name "DeepSeek-V3-0324-Q5_K_M" \
-	--gguf_path $HOME/DeepSeek-V3-0324-Q5_K_M \
+	--model_name "DeepSeek-V3-0324-Q4_K_M" \
+	--gguf_path $HOME/DeepSeek-V3-0324-Q4_K_M \
 	--chunk_size 256 \
-	--cache_lens 131072 \
-	--cpu_infer 48 \
-	--max_new_tokens 8192 \
+	--cache_lens 16384 \
+	--cpu_infer 38 \
+	--max_new_tokens 4096 \
 	--temperature 0.3 \
 	--backend_type ktransformers
 ```
 
-To hook this in Open Web UI just add an OpenAI API connection. For example:
+To hook this in Open Web UI or other UI inference things, you just add an OpenAI API connection. For example:
 
 ```
 http://localhost:9999/v1
